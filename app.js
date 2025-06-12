@@ -1,4 +1,4 @@
-// app.js
+// app.js — обновлённый с поддержкой камер
 
 const iconSvgs = {
   play: '<svg xmlns="http://www.w3.org/2000/svg" height="24" width="24" fill="white"><path d="M8 5v14l11-7z"/></svg>',
@@ -30,6 +30,10 @@ const defaultModels = [
 const animations = {
   'bts-bestofme': BASE_URL + 'vmd/bts-bestofme.vmd',
   'idle': BASE_URL + 'vmd/idle.vmd'
+};
+const cameraAnimations = {
+  'bts-bestofme-camera': BASE_URL + 'vmd/bts-bestofme_camera.vmd',
+  'idle-camera': BASE_URL + 'vmd/idle_camera.vmd'
 };
 
 let scene, renderer, camera, mesh, helper, controls;
@@ -194,36 +198,30 @@ function disposeModel(model) {
 
 async function loadPMXFromBuffer(buffer) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const dataUrl = e.target.result;
-      const loader = new THREE.MMDLoader();
-      loader.load(dataUrl, object => {
-        if (mesh) {
-          scene.remove(mesh);
-          if (helper) helper.remove(mesh);
-          disposeModel(mesh);
-          mesh = null;
-        }
-        mesh = object;
-        scene.add(mesh);
-        centerModel();
-        initMouthMorphs();
-        showSuccess("Model loaded from file!");
-        updateStatus("Model loaded", "success");
-        loadingOverlay.style.display = 'none';
-        debugLog("Model loaded from buffer");
-        resolve();
-      }, undefined, error => {
-        showError("Model loading error: " + error.message);
-        updateStatus("Model loading error", "error");
-        loadingOverlay.style.display = 'none';
-        debugLog("Model loading error: " + error.message);
-        reject(error);
-      });
-    };
-    const blob = new Blob([buffer], {type: 'application/octet-stream'});
-    reader.readAsDataURL(blob);
+    const loader = new THREE.MMDLoader();
+    loader.parse(buffer, '', object => {
+      if (mesh) {
+        scene.remove(mesh);
+        if (helper) helper.remove(mesh);
+        disposeModel(mesh);
+        mesh = null;
+      }
+      mesh = object;
+      scene.add(mesh);
+      centerModel();
+      initMouthMorphs();
+      showSuccess("Model loaded from file!");
+      updateStatus("Model loaded", "success");
+      loadingOverlay.style.display = 'none';
+      debugLog("Model loaded from buffer");
+      resolve();
+    }, error => {
+      showError("Model loading error: " + error.message);
+      updateStatus("Model loading error", "error");
+      loadingOverlay.style.display = 'none';
+      debugLog("Model loading error: " + error.message);
+      reject(error);
+    });
   });
 }
 
@@ -338,6 +336,44 @@ async function loadAnimationVMD(file) {
         updateStatus("Animation loading error", "error");
         loadingOverlay.style.display = 'none';
         debugLog("Animation loading error: " + error.message);
+        reject(error);
+      }
+    );
+  });
+}
+
+// Загрузка камеры VMD
+async function loadCameraVMD(file) {
+  loadingText.textContent = "Loading camera animation...";
+  loadingOverlay.style.display = 'flex';
+  updateStatus("Loading camera animation...", "loading");
+  debugLog("Start loading camera animation from file");
+
+  const arrayBuffer = await file.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    const loader = new THREE.MMDLoader();
+    loader.loadAnimation(
+      arrayBuffer,
+      camera,
+      (vmdClip) => {
+        if (!helper) {
+          helper = new THREE.MMDAnimationHelper({ afterglow: 2.0, resetPhysicsOnLoop: true });
+          helper.add(camera);
+        }
+        helper.add(camera, { animation: vmdClip });
+        ready = true;
+        loadingOverlay.style.display = 'none';
+        showSuccess("Camera animation loaded!");
+        updateStatus("Camera animation loaded", "success");
+        debugLog("Camera animation loaded from file");
+        resolve();
+      },
+      undefined,
+      (error) => {
+        showError("Camera animation loading error: " + error.message);
+        updateStatus("Camera animation loading error", "error");
+        loadingOverlay.style.display = 'none';
+        debugLog("Camera animation loading error: " + error.message);
         reject(error);
       }
     );
@@ -554,6 +590,23 @@ animUploadInput.addEventListener('change', async e => {
   }
 });
 
+const cameraUploadInput = document.createElement('input');
+cameraUploadInput.type = 'file';
+cameraUploadInput.accept = '.vmd';
+cameraUploadInput.style.display = 'none';
+document.body.appendChild(cameraUploadInput);
+
+document.getElementById('lighting-btn').addEventListener('click', () => {
+  // Для примера — загружаем камеру из файла
+  cameraUploadInput.click();
+});
+
+cameraUploadInput.addEventListener('change', async e => {
+  if (e.target.files.length) {
+    await loadCameraVMD(e.target.files[0]);
+  }
+});
+
 danceToggleBtn.addEventListener('click', toggleDanceAnimation);
 
 audioUploadBtn.addEventListener('click', () => {
@@ -571,65 +624,11 @@ mouthSettingsBtn.addEventListener('click', () => {
   lightingSettingsPanel.style.display = 'none';
 });
 
-lightingBtn.addEventListener('click', () => {
-  lightingSettingsPanel.style.display = lightingSettingsPanel.style.display === 'block' ? 'none' : 'block';
-  mouthSettingsPanel.style.display = 'none';
-});
-
 sensitivitySlider.addEventListener('input', e => mouthSettings.sensitivity = parseFloat(e.target.value));
 strengthSlider.addEventListener('input', e => mouthSettings.strength = parseFloat(e.target.value));
 
 ambientLightRange.addEventListener('input', e => ambientLight.intensity = parseFloat(e.target.value));
 directionalLightRange.addEventListener('input', e => directionalLight.intensity = parseFloat(e.target.value));
-
-async function loadAnimation(key) {
-  if (!mesh) {
-    debugLog("Model not loaded, load model first");
-    return;
-  }
-  if (!animations[key]) {
-    debugLog(`Animation ${key} not found`);
-    return;
-  }
-  loadingText.textContent = `Loading animation: ${key}...`;
-  loadingOverlay.style.display = 'flex';
-  updateStatus(`Loading animation: ${key}`, "loading");
-  debugLog(`Start loading animation: ${key}`);
-  return new Promise((resolve, reject) => {
-    const loader = new THREE.MMDLoader();
-    loader.loadAnimation(
-      animations[key],
-      mesh,
-      (vmdClip) => {
-        if (helper) {
-          helper.remove(mesh);
-          helper = null;
-        }
-        helper = new THREE.MMDAnimationHelper({ afterglow: 2.0, resetPhysicsOnLoop: true });
-        vmdClip.tracks = vmdClip.tracks.filter(track => !track.name.includes('口') && !track.name.toLowerCase().includes('open'));
-        helper.add(mesh, { animation: vmdClip, physics: false });
-        mixer = helper.objects.get(mesh).mixer;
-        currentAction = mixer.clipAction(vmdClip);
-        currentAction.play();
-        mixer.timeScale = currentSpeed;
-        ready = true;
-        loadingOverlay.style.display = 'none';
-        showSuccess(`Animation "${key}" loaded!`);
-        updateStatus(`Animation "${key}" loaded`, "success");
-        debugLog(`Animation "${key}" loaded`);
-        resolve();
-      },
-      undefined,
-      (error) => {
-        showError("Animation loading error: " + error.message);
-        updateStatus("Animation loading error", "error");
-        loadingOverlay.style.display = 'none';
-        debugLog("Animation loading error: " + error.message);
-        reject(error);
-      }
-    );
-  });
-}
 
 function startApp() {
   debugLog("Starting app");
@@ -644,3 +643,4 @@ function startApp() {
     });
 }
 startApp();
+    
