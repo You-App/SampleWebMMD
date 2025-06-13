@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WebMMD Studio</title>
+<link rel="stylesheet" href="https://you-app.github.io/SampleWebMMD/css.css" />
+</head>
+<body>
+<div id="canvas-container"></div>
+
+<!-- Управляющие панели и кнопки -->
+<div id="control-panel" role="region" aria-label="Control panel">
+  <button class="control-btn" id="play-btn" title="Play/Pause" aria-label="Play/Pause"></button>
+  <button class="control-btn" id="reset-btn" title="Reset animation" aria-label="Reset animation"></button>
+  <button class="control-btn" id="speed-down" title="Speed down" aria-label="Speed down"></button>
+  <button class="control-btn" id="speed-up" title="Speed up" aria-label="Speed up"></button>
+  <button class="control-btn" id="model-select-btn" title="Select model" aria-haspopup="true" aria-expanded="false" aria-controls="model-select-panel" aria-label="Select model"></button>
+  <button class="control-btn" id="animation-select-btn" title="Select animation" aria-label="Select animation"></button>
+  <button class="control-btn" id="dance-toggle-btn" title="Toggle dance animation" aria-label="Toggle dance animation">💃</button>
+</div>
+
+<div id="bottom-panel" role="region" aria-label="Bottom controls">
+  <button class="control-btn" id="audio-upload-btn" title="Upload MP3" aria-label="Upload MP3">🎵</button>
+  <button class="control-btn" id="mouth-settings-btn" title="Mouth settings" aria-label="Mouth settings">👄</button>
+  <button class="control-btn" id="lighting-btn" title="Lighting settings" aria-label="Lighting settings">💡</button>
+</div>
+
+<div class="settings-panel" id="mouth-settings" role="region" aria-label="Mouth animation settings">
+  <label for="sensitivity">Sensitivity</label>
+  <input type="range" id="sensitivity" min="0" max="1" step="0.05" value="0.5" />
+  <label for="strength">Strength</label>
+  <input type="range" id="strength" min="0" max="1" step="0.05" value="0.7" />
+  <canvas class="audio-visualizer" id="visualizer" width="280" height="40" aria-hidden="true"></canvas>
+</div>
+
+<div class="settings-panel" id="lighting-settings" role="region" aria-label="Lighting settings">
+  <label for="ambient-light-range">Ambient Light Intensity</label>
+  <input type="range" id="ambient-light-range" min="0" max="2" step="0.05" value="0.5" />
+  <label for="directional-light-range">Directional Light Intensity</label>
+  <input type="range" id="directional-light-range" min="0" max="2" step="0.05" value="0.8" />
+</div>
+
+<div id="model-select-panel" role="dialog" aria-modal="true" aria-labelledby="model-select-title">
+  <h3 id="model-select-title">Select or Upload Model</h3>
+  <div id="model-list" tabindex="0" aria-label="Model list"></div>
+  <button id="model-upload-btn" aria-label="Upload PMX or ZIP model">+ Upload Model</button>
+  <input type="file" id="model-file-input" accept=".pmx,.zip" style="display:none" />
+</div>
+
+<div id="status-bar" role="status" aria-live="polite">
+  <span class="status-indicator status-loading" id="status-indicator"></span>
+  <span id="status-text">Loading...</span>
+</div>
+
+<div id="ready-indicator" aria-live="polite" aria-atomic="true">
+  <span>✔ Ready</span>
+</div>
+
+<div id="loading-overlay" aria-live="assertive" aria-atomic="true" role="alert" style="display:none;">
+  <h2 id="loading-text">Loading model...</h2>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="error-message" id="error-message"></div>
+  <div class="success-message" id="success-message"></div>
+</div>
+
+<div id="debug-panel" aria-live="polite" aria-atomic="false" role="log" aria-label="Debug panel" tabindex="0" title="Click to toggle logs"></div>
+<div id="debug-controls" style="display:none;">
+  <button id="copy-logs-btn" aria-label="Copy logs">Copy Logs</button>
+  <button id="close-logs-btn" aria-label="Close logs">Close</button>
+</div>
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.106.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.106.2/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.106.2/examples/js/loaders/MMDLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.106.2/examples/js/animation/MMDAnimationHelper.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.106.2/examples/js/animation/CCDIKSolver.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.106.2/examples/js/libs/mmdparser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.106.2/examples/js/loaders/TGALoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ammo.js@0.0.2/builds/ammo.wasm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<!-- Your app.js -->
+<script src="https://you-app.github.io/SampleWebMMD/app.js"></script>
+</body>
+</html>
